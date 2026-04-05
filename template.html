@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Option Deals</title>
+    <!-- Use Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Premium Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-globes">
+        <div class="globe globe-1"></div>
+        <div class="globe globe-2"></div>
+    </div>
+    
+    <header class="glass-nav">
+        <div class="nav-content">
+            <h1 class="logo">Quant<span>Deals</span></h1>
+            <span class="live-status">
+                <span class="pulse-dot"></span> Live AI Intel
+            </span>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h2 class="hero-title">High-Probability Option Setups</h2>
+            <p class="hero-subtitle">Generated daily using VIX/IV sentiment and Gemini Advanced AI analysis. Data is purely for educational purposes.</p>
+            <div class="update-time">
+                Last updated: <span id="last-updated">{{DATE_STR}}</span>
+            </div>
+        </section>
+
+        <!-- Markdown Output from Gemini will be injected here -->
+        <article class="ai-content">
+            {{CONTENT}}
+        </article>
+    </main>
+
+    <footer>
+        <p>Built with ❤️ by AI. 100% Automated. Zero Maintenance.</p>
+    </footer>
+</body>
+</html>
