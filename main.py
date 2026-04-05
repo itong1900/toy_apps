@@ -4,6 +4,7 @@ from google import genai
 from google.genai import types
 import markdown
 from datetime import datetime
+import time
 
 def get_market_data():
     """Fetches rudimentary market data to feed the AI context"""
@@ -27,6 +28,9 @@ def get_market_data():
         except Exception as e:
             print(f"Failed to fetch {t}: {e}")
             
+    if not data:
+        raise Exception("Fatal: Failed to fetch any market data from Yahoo Finance. Aborting to avoid generating placeholder or hallucinated outputs.")
+        
     return data
 
 def build_prompt(market_data):
@@ -76,15 +80,27 @@ def generate_deals(prompt):
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable not set. Please set it to proceed.")
         
-    client = genai.Client()
-    response = client.models.generate_content(
-        model='gemini-3.1-pro',
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            temperature=0.3,
-        ),
-    )
-    return response.text
+    client = genai.Client(api_key=api_key)
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = client.models.generate_content(
+                model='gemini-2.5-pro',
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    temperature=0.3,
+                ),
+            )
+            return response.text
+        except Exception as e:
+            print(f"Attempt {attempt + 1} failed: {e}")
+            if attempt < max_retries - 1:
+                print("Sleeping for 10 seconds before retrying...")
+                time.sleep(10)
+            else:
+                print(f"Failed after {max_retries} attempts. Aborting.")
+                raise e
 
 def build_html(markdown_content):
     print("Building HTML...")
@@ -129,36 +145,13 @@ def main():
         market_data = get_market_data()
         prompt = build_prompt(market_data)
         
-        # If API key is not set, we'll write a dummy fallback for testing UI
-        if not os.environ.get("GEMINI_API_KEY"):
-            print("WARNING: GEMINI_API_KEY not found. Generating dummy data for UI testing...")
-            dummy_md = f"""
-## Market Overview
-The S&P 500 is hovering around {market_data.get('SPY',{}).get('price', 'N/A')} with the VIX at {market_data.get('^VIX',{}).get('price', 'N/A')}. Volatility is relatively stable, offering good opportunities for premium collection on blue-chip names.
-
-> **Ticker:** TSLA (Tesla Inc.)
-> **Strategy:** Iron Condor
-> **Condition/Strike:** Sell \$200 Put / Buy \$190 Put - Sell \$250 Call / Buy \$260 Call
-> **Expiration:** 30-45 DTE
-> **Est. Premium:** \$3.20
-> **Reward / Risk:** Max Profit \$320 / Max Loss \$680
-> **Rationale:** TSLA has been trading in a tight range. Selling an Iron Condor capitalizes on the expected sideways movement while keeping risk defined on both ends.
-
-> **Ticker:** NVDA (NVIDIA Corp.)
-> **Strategy:** Sell Put Spread
-> **Condition/Strike:** Sell \$800 Put, Buy \$780 Put
-> **Expiration:** 14-21 DTE
-> **Est. Premium:** \$2.50
-> **Reward / Risk:** Max Profit \$250 / Max Loss \$1750
-> **Rationale:** NVDA continues its strong uptrend. Selling puts below the 20-day moving average allows us to collect high IV premium with low probability of assignment.
-"""
-            build_html(dummy_md)
-        else:
-            md_content = generate_deals(prompt)
-            build_html(md_content)
+        md_content = generate_deals(prompt)
+        build_html(md_content)
             
     except Exception as e:
         print(f"Error executing daily script: {e}")
+        # Explicit non-zero exit code so GitHub Actions reports a failure instead of a green checkmark
+        exit(1)
 
 if __name__ == "__main__":
     main()
