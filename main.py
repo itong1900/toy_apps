@@ -8,7 +8,7 @@ from datetime import datetime
 def get_market_data():
     """Fetches rudimentary market data to feed the AI context"""
     print("Fetching market data...")
-    tickers = ["^VIX", "SPY", "QQQ"]
+    tickers = ["^VIX", "SPY", "QQQ", "AMZN", "NVDA", "AAPL", "META", "MSFT", "TSLA"]
     data = {}
     
     for t in tickers:
@@ -33,6 +33,12 @@ def build_prompt(market_data):
     today = datetime.now().strftime("%Y-%m-%d")
     vix = market_data.get("^VIX", {}).get("price", "Unknown")
     
+    target_stocks = ["AMZN", "NVDA", "AAPL", "META", "MSFT", "TSLA"]
+    stock_context = ""
+    for ts in target_stocks:
+        price = market_data.get(ts, {}).get("price", "N/A")
+        stock_context += f"- {ts}: ${price}\n"
+    
     prompt = f"""
 You are an expert quantitative options trader and AI financial analyst. 
 Today's Date: {today}
@@ -41,7 +47,10 @@ Current Market Context:
 - SPY: {market_data.get("SPY", {}).get("price", "")}
 - QQQ: {market_data.get("QQQ", {}).get("price", "")}
 
-Your task: Provide the top 5 to 8 option selling strategies (deals) for today. Focus on high-probability setups like Sell Put Spread, Sell Covered Call, or Iron Condor. 
+Target Watchlist Prices:
+{stock_context}
+
+Your task: Provide the top 5 to 8 option selling strategies (deals) for today. You MUST prioritize analyzing the tickers in the Target Watchlist (AMZN, NVDA, AAPL, META, MSFT, TSLA). Focus on high-probability setups like Sell Put Spread, Sell Covered Call, or Iron Condor. 
 Since you don't have real-time live option chain data, you should formulate "Conditional Recommendations" based on the current context. (e.g. "If XYZ drops to $150, sell the $145 Put").
 
 **CRITICAL FORMATTING INSTRUCTIONS**:
@@ -69,7 +78,7 @@ def generate_deals(prompt):
         
     client = genai.Client()
     response = client.models.generate_content(
-        model='gemini-2.5-pro',
+        model='gemini-3.1-pro',
         contents=prompt,
         config=types.GenerateContentConfig(
             temperature=0.3,
